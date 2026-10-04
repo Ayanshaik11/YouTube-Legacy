@@ -15,7 +15,7 @@ jobs:
     steps:
 
       # --------------------------------------------------
-      # 1. Checkout
+      # 1. Checkout repository
       # --------------------------------------------------
 
       - name: Checkout
@@ -23,7 +23,7 @@ jobs:
 
 
       # --------------------------------------------------
-      # 2. Java 17
+      # 2. Setup Java 17
       # --------------------------------------------------
 
       - name: Setup Java 17
@@ -34,7 +34,7 @@ jobs:
 
 
       # --------------------------------------------------
-      # 3. Configure Android SDK
+      # 3. Configure Android SDK paths
       # --------------------------------------------------
 
       - name: Configure Android SDK
@@ -74,7 +74,7 @@ jobs:
 
 
       # --------------------------------------------------
-      # 5. Accept Android licenses
+      # 5. Accept Android SDK licenses
       # --------------------------------------------------
 
       - name: Accept Android SDK licenses
@@ -93,7 +93,7 @@ jobs:
 
 
       # --------------------------------------------------
-      # 6. Install Android SDK
+      # 6. Install Android SDK packages
       # --------------------------------------------------
 
       - name: Install Android SDK packages
@@ -131,12 +131,21 @@ jobs:
       - name: Restore signing keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          echo "$KEYSTORE_BASE64" | base64 --decode > youtube-legacy-release.jks
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > youtube-legacy-release.jks
+
+          echo "Checking restored keystore..."
 
           test -s youtube-legacy-release.jks
 
-          echo "Keystore restored successfully."
+          keytool -list \
+            -keystore youtube-legacy-release.jks \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -alias "$KEY_ALIAS"
+
+          echo "Keystore restored and verified successfully."
 
 
       # --------------------------------------------------
@@ -164,10 +173,10 @@ jobs:
 
 
       # --------------------------------------------------
-      # 11. Check signed APK
+      # 11. Check generated APK
       # --------------------------------------------------
 
-      - name: Check APK
+      - name: Check signed APK
         run: |
           echo "Release files:"
           ls -lh app/build/outputs/apk/release/
@@ -176,7 +185,20 @@ jobs:
 
 
       # --------------------------------------------------
-      # 12. Prepare APK
+      # 12. Verify APK signature
+      # --------------------------------------------------
+
+      - name: Verify APK signature
+        run: |
+          APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
+
+          "$APKSIGNER" verify \
+            --verbose \
+            app/build/outputs/apk/release/app-release.apk
+
+
+      # --------------------------------------------------
+      # 13. Prepare APK
       # --------------------------------------------------
 
       - name: Prepare APK
@@ -187,12 +209,14 @@ jobs:
             app/build/outputs/apk/release/app-release.apk \
             output/YouTube-Legacy-Android5.apk
 
+          ls -lh output/YouTube-Legacy-Android5.apk
+
 
       # --------------------------------------------------
-      # 13. Upload APK
+      # 14. Upload signed APK
       # --------------------------------------------------
 
-      - name: Upload APK
+      - name: Upload signed APK
         uses: actions/upload-artifact@v4
         with:
           name: YouTube-Legacy-Android5
@@ -201,7 +225,7 @@ jobs:
 
 
       # --------------------------------------------------
-      # 14. Delete keystore
+      # 15. Remove temporary keystore
       # --------------------------------------------------
 
       - name: Remove temporary keystore
