@@ -8,11 +8,9 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 
 import android.webkit.CookieManager;
-import android.webkit.DownloadListener;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -27,18 +25,11 @@ import android.widget.TextView;
 public class MainActivity extends Activity {
 
     private WebView webView;
-
     private LinearLayout errorLayout;
-
     private Button retryButton;
-
-    private View customView;
-
-    private WebChromeClient.CustomViewCallback customViewCallback;
 
     private static final String YOUTUBE_URL =
             "https://www.youtube.com/";
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,26 +39,18 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         webView = findViewById(R.id.webView);
-
         errorLayout = findViewById(R.id.errorLayout);
-
         retryButton = findViewById(R.id.retryButton);
 
         setupWebView();
 
         retryButton.setOnClickListener(
                 new View.OnClickListener() {
-
                     @Override
                     public void onClick(View v) {
 
-                        errorLayout.setVisibility(
-                                View.GONE
-                        );
-
-                        webView.setVisibility(
-                                View.VISIBLE
-                        );
+                        errorLayout.setVisibility(View.GONE);
+                        webView.setVisibility(View.VISIBLE);
 
                         webView.loadUrl(YOUTUBE_URL);
                     }
@@ -75,103 +58,70 @@ public class MainActivity extends Activity {
         );
 
         if (savedInstanceState == null) {
-
             webView.loadUrl(YOUTUBE_URL);
-
         } else {
-
             webView.restoreState(savedInstanceState);
         }
     }
 
-
     private void setupWebView() {
 
-        WebSettings settings =
-                webView.getSettings();
+        WebSettings settings = webView.getSettings();
 
-
-        // Enable JavaScript
-
+        // JavaScript
         settings.setJavaScriptEnabled(true);
 
-
-        // Enable website storage
-
+        // Website storage
         settings.setDomStorageEnabled(true);
-
         settings.setDatabaseEnabled(true);
 
-
         // Cookies
+        CookieManager cookieManager =
+                CookieManager.getInstance();
 
-        CookieManager
-                .getInstance()
-                .setAcceptCookie(true);
-
+        cookieManager.setAcceptCookie(true);
 
         if (Build.VERSION.SDK_INT >= 21) {
-
-            CookieManager
-                    .getInstance()
-                    .setAcceptThirdPartyCookies(
-                            webView,
-                            true
-                    );
+            cookieManager.setAcceptThirdPartyCookies(
+                    webView,
+                    true
+            );
         }
 
-
         // Viewport
+        settings.setUseWideViewPort(true);
+        settings.setLoadWithOverviewMode(true);
 
-        settings.setUseWideViewPort(false);
-
-        settings.setLoadWithOverviewMode(false);
-
-
-        // Disable zoom controls
-
+        // Zoom
         settings.setSupportZoom(false);
-
         settings.setBuiltInZoomControls(false);
 
-        settings.setDisplayZoomControls(false);
+        if (Build.VERSION.SDK_INT >= 11) {
+            settings.setDisplayZoomControls(false);
+        }
 
+        // Media
+        if (Build.VERSION.SDK_INT >= 17) {
+            settings.setMediaPlaybackRequiresUserGesture(false);
+        }
 
-        // Allow media playback
-
-        settings.setMediaPlaybackRequiresUserGesture(false);
-
-
-        // JavaScript windows
-
-        settings.setJavaScriptCanOpenWindowsAutomatically(
-                true
-        );
-
+        // Windows
+        settings.setJavaScriptCanOpenWindowsAutomatically(true);
         settings.setSupportMultipleWindows(false);
 
-
         /*
-         * Chrome-like User Agent.
+         * IMPORTANT:
          *
-         * This can improve compatibility with
-         * websites that reject very old WebViews.
+         * Do NOT pretend to be Chrome 80.
+         *
+         * Let Android's WebView use its own normal
+         * User-Agent.
          */
-
         settings.setUserAgentString(
-                "Mozilla/5.0 " +
-                "(Linux; Android 5.1.1) " +
-                "AppleWebKit/537.36 " +
-                "(KHTML, like Gecko) " +
-                "Chrome/80.0.3987.149 " +
-                "Mobile Safari/537.36"
+                settings.getUserAgentString()
         );
 
-
-        webView.setBackgroundColor(
-                Color.WHITE
-        );
-
+        webView.setBackgroundColor(Color.WHITE);
 
         webView.setWebViewClient(
                 new WebViewClient() {
@@ -185,7 +135,6 @@ public class MainActivity extends Activity {
 
                         return true;
                     }
-
 
                     @Override
                     public void onPageStarted(
@@ -202,6 +151,19 @@ public class MainActivity extends Activity {
                         );
                     }
 
+                    @Override
+                    public void onPageFinished(
+                            WebView view,
+                            String url) {
+
+                        errorLayout.setVisibility(
+                                View.GONE
+                        );
+
+                        webView.setVisibility(
+                                View.VISIBLE
+                        );
+                    }
 
                     @Override
                     public void onReceivedError(
@@ -212,7 +174,6 @@ public class MainActivity extends Activity {
 
                         showError(description);
                     }
-
 
                     @Override
                     public void onReceivedError(
@@ -234,69 +195,25 @@ public class MainActivity extends Activity {
                 }
         );
 
-
         webView.setWebChromeClient(
-                new WebChromeClient() {
-
-                    @Override
-                    public void onShowCustomView(
-                            View view,
-                            CustomViewCallback callback) {
-
-                        enterFullscreen(
-                                view,
-                                callback
-                        );
-                    }
-
-
-                    @Override
-                    public void onHideCustomView() {
-
-                        exitFullscreen();
-                    }
-                }
-        );
-
-
-        webView.setDownloadListener(
-                new DownloadListener() {
-
-                    @Override
-                    public void onDownloadStart(
-                            String url,
-                            String userAgent,
-                            String contentDisposition,
-                            String mimetype,
-                            long contentLength) {
-
-                        // Intentionally left empty.
-                        //
-                        // YouTube normally does not expose
-                        // direct video downloads here.
-                    }
-                }
+                new WebChromeClient()
         );
     }
 
-
     private void showError(String message) {
 
-        webView.setVisibility(
-                View.GONE
-        );
+        webView.setVisibility(View.GONE);
 
-        errorLayout.setVisibility(
-                View.VISIBLE
-        );
+        errorLayout.setVisibility(View.VISIBLE);
 
         TextView errorText =
                 findViewById(R.id.errorText);
 
-        if (message == null) {
+        if (message == null ||
+                message.trim().length() == 0) {
 
             errorText.setText(
-                    "Unable to load YouTube."
+                    "YouTube could not be loaded."
             );
 
         } else {
@@ -305,90 +222,8 @@ public class MainActivity extends Activity {
         }
     }
 
-
-    private void enterFullscreen(
-            View view,
-            WebChromeClient.CustomViewCallback callback) {
-
-        customView = view;
-
-        customViewCallback = callback;
-
-
-        getWindow().setFlags(
-                WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN
-        );
-
-
-        webView.setVisibility(
-                View.GONE
-        );
-
-
-        ViewGroup decor =
-                (ViewGroup) getWindow()
-                        .getDecorView();
-
-
-        decor.addView(
-                customView,
-                new ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                )
-        );
-    }
-
-
-    private void exitFullscreen() {
-
-        if (customView == null) {
-
-            return;
-        }
-
-
-        ViewGroup decor =
-                (ViewGroup) getWindow()
-                        .getDecorView();
-
-
-        decor.removeView(customView);
-
-
-        customView = null;
-
-
-        if (customViewCallback != null) {
-
-            customViewCallback.onCustomViewHidden();
-
-            customViewCallback = null;
-        }
-
-
-        getWindow().clearFlags(
-                WindowManager.LayoutParams.FLAG_FULLSCREEN
-        );
-
-
-        webView.setVisibility(
-                View.VISIBLE
-        );
-    }
-
-
     @Override
     public void onBackPressed() {
-
-        if (customView != null) {
-
-            exitFullscreen();
-
-            return;
-        }
-
 
         if (webView.canGoBack()) {
 
@@ -397,10 +232,8 @@ public class MainActivity extends Activity {
             return;
         }
 
-
         super.onBackPressed();
     }
-
 
     @Override
     protected void onSaveInstanceState(
@@ -410,7 +243,6 @@ public class MainActivity extends Activity {
 
         super.onSaveInstanceState(outState);
     }
-
 
     @Override
     protected void onPause() {
@@ -422,25 +254,19 @@ public class MainActivity extends Activity {
                 .flush();
     }
 
-
     @Override
     protected void onDestroy() {
 
         if (webView != null) {
 
-            webView.loadUrl(
-                    "about:blank"
-            );
-
+            webView.loadUrl("about:blank");
             webView.stopLoading();
 
             webView.setWebChromeClient(null);
-
             webView.setWebViewClient(null);
 
             webView.destroy();
         }
-
 
         super.onDestroy();
     }
