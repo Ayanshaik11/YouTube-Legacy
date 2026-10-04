@@ -1,9 +1,10 @@
 plugins {
-    id 'com.android.application'
+    id "com.android.application"
 }
 
 android {
-    namespace 'com.ayan.youtubelegacy'
+    namespace "com.ayan.youtubelegacy"
+
     compileSdk 34
 
     defaultConfig {
@@ -21,14 +22,17 @@ android {
             minifyEnabled false
             shrinkResources false
 
-            proguardFiles getDefaultProguardFile(
-                    'proguard-android-optimize.txt'
-            ), 'proguard-rules.pro'
+            proguardFiles(
+                getDefaultProguardFile(
+                    "proguard-android-optimize.txt"
+                ),
+                "proguard-rules.pro"
+            )
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_8
-        targetCompatibility JavaVersion.VERSION_8
+        sourceCompatibility "1.8"
+        targetCompatibility "1.8"
     }
 }
